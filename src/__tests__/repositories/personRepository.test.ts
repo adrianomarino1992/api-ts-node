@@ -1,237 +1,213 @@
-import 'reflect-metadata';
-import PersonRepository from '../../data/personRepository';
-import { MetadataKeys } from '../../decorators/validatorHandler';
-import { PersonDTO } from '../../data/dto/personDTO';
-import { IPerson } from '../../models/interfaces/Iperson';
-import {Prisma, PrismaClient} from '@prisma/client';
+import "reflect-metadata";
+import PersonRepository from "../../data/personRepository";
+import { MetadataKeys } from "../../decorators/validatorHandler";
+import { PersonDTO } from "../../data/dto/personDTO";
+import { IPerson } from "../../models/interfaces/Iperson";
+import { Prisma, PrismaClient } from "@prisma/client";
 
-describe("Test PersonRepository", ()=>{
+describe("Test PersonRepository", () => {
+  test("Ctor", () => {
+    let r: PersonRepository = new PersonRepository();
 
+    let col = r.CollectionName;
 
-    test("Ctor", ()=> {
-        
-        let r : PersonRepository = new PersonRepository();
-        
-        let col = r.CollectionName;
+    let personMetadata: string = Reflect.getMetadata(
+      MetadataKeys.PrismaCollectionKey,
+      PersonDTO
+    );
 
-        let personMetadata : string = Reflect.getMetadata(MetadataKeys.PrismaCollectionKey, PersonDTO)
+    expect(personMetadata).not.toBeNull();
 
-        expect(personMetadata).not.toBeNull();
+    expect(personMetadata.length).toBeGreaterThan(0);
 
-        expect(personMetadata.length).toBeGreaterThan(0);
+    expect(col).not.toBeNull();
 
-        expect(col).not.toBeNull();
+    expect(col.length).toBeGreaterThan(0);
 
-        expect(col.length).toBeGreaterThan(0);
+    expect(personMetadata).toBe(col);
+  });
 
-        expect(personMetadata).toBe(col);
+  test("Add new person", async () => {
+    let r: PersonRepository = new PersonRepository();
 
+    let cli: PrismaClient = new PrismaClient();
+
+    let person = new PersonDTO({
+      Email: "ana@gmail.com",
+      Name: "Ana",
+      Phone: "1298674532",
+    } as IPerson);
+
+    cli.$connect();
+
+    let count = await cli.person.count();
+
+    await r.Add(person);
+
+    let countAfter = await cli.person.count();
+
+    await cli.person.delete({
+      where: {
+        Email: person.Email,
+      },
     });
 
+    cli.$disconnect();
 
-    test("Add new person", async ()=> {
+    expect(count).toBe(countAfter - 1);
+  }, 10000);
 
-        let r : PersonRepository = new PersonRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
+  test("Update a person", async () => {
+    let r: PersonRepository = new PersonRepository();
 
-        let person = new PersonDTO({
-            Email : "ana@gmail.com",
-            Name : "Ana", 
-            Phone : "1298674532"
-        } as IPerson)
+    let cli: PrismaClient = new PrismaClient();
 
-        cli.$connect();
+    let person = new PersonDTO({
+      Email: "ana@gmail.com",
+      Name: "Ana",
+      Phone: "1298674532",
+    } as IPerson);
 
-        let count = await cli.person.count();
+    cli.$connect();
 
-        await r.Add(person);
+    await cli.person.create({ data: person.ToCreateData() });
 
-        let countAfter = await cli.person.count();
+    person.Name = "Carol";
 
-       await cli.person.delete({
-            where: {
-                Email : person.Email 
-            }
-        })
+    await r.Update(person);
 
-        cli.$disconnect();
+    let result = await cli.person.findFirst({ where: { Email: person.Email } });
 
-        expect(count).toBe((countAfter - 1));
+    await cli.person.delete({
+      where: {
+        Email: person.Email,
+      },
+    });
 
+    cli.$disconnect();
 
-    }, 10000);
+    expect(result?.Name).toBe("Carol");
+  }, 10000);
 
+  test("Get person", async () => {
+    let r: PersonRepository = new PersonRepository();
 
-    test("Update a person", async ()=> {
+    let cli: PrismaClient = new PrismaClient();
 
-        let r : PersonRepository = new PersonRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
+    let person = new PersonDTO({
+      Email: "ana@gmail.com",
+      Name: "Ana",
+      Phone: "1298674532",
+    } as IPerson);
 
-        let person = new PersonDTO({
-            Email : "ana@gmail.com",
-            Name : "Ana", 
-            Phone : "1298674532"
-        } as IPerson)
+    cli.$connect();
 
-        cli.$connect();       
+    await cli.person.create({ data: person.ToCreateData() });
 
-        await cli.person.create({ data : person.ToCreateData()});
+    let result: any = await cli.person.findFirst({
+      where: person.GetUniqueKey(),
+    });
 
-        person.Name = "Carol";
+    await cli.person.delete({
+      where: {
+        Email: person.Email,
+      },
+    });
 
-        await r.Update(person);    
-        
-        let result = await cli.person.findFirst({where : { Email : person.Email }});
+    cli.$disconnect();
 
-        await cli.person.delete({
-            where: {
-                Email : person.Email 
-            }
-        })
+    expect(person.Name).toBe(result.Name);
+  }, 10000);
 
-        cli.$disconnect();
+  test("Get person and events", async () => {
+    let r: PersonRepository = new PersonRepository();
 
-        expect(result?.Name).toBe("Carol");
+    let cli: PrismaClient = new PrismaClient();
 
+    let person = new PersonDTO({
+      Email: "ana@gmail.com",
+      Name: "Ana",
+      Phone: "1298674532",
+    } as IPerson);
 
-    }, 10000);
+    cli.$connect();
 
+    await cli.person.create({ data: person.ToCreateData() });
 
-    test("Get person", async ()=> {
+    let result: any = await cli.person.findFirst({
+      where: person.GetUniqueKey(),
+    });
 
-        let r : PersonRepository = new PersonRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
+    await cli.event.create({
+      data: {
+        Description: "First event of seed",
+        Title: "The first",
+        OwnerId: result.Id,
+      },
+    });
 
-        let person = new PersonDTO({
-            Email : "ana@gmail.com",
-            Name : "Ana", 
-            Phone : "1298674532"
-        } as IPerson)
+    let personWithEvents = await cli.person.findFirst({
+      where: person.GetUniqueKey(),
+      include: { Events: true },
+    });
 
-        cli.$connect(); 
-
-        await cli.person.create({ data : person.ToCreateData()});
-
-        let result : any = await cli.person.findFirst({ where : person.GetUniqueKey()});
-
-        await cli.person.delete({
-            where: {
-                Email : person.Email 
-            }
-        })
-
-        cli.$disconnect();
-
-        expect(person.Name).toBe(result.Name);
-
-    }, 10000);
-
-
-    test("Get person and events", async ()=> {
-
-        let r : PersonRepository = new PersonRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
-
-        let person = new PersonDTO({
-            Email : "ana@gmail.com",
-            Name : "Ana", 
-            Phone : "1298674532"
-        } as IPerson)
-
-        cli.$connect(); 
-
-        await cli.person.create({ data : person.ToCreateData()});
-        
-        let result : any = await cli.person.findFirst({ where : person.GetUniqueKey()});
-
-        await cli.event.create({
-            data : {
-                Description: "First event of seed",
-                Title: "The first",
-                OwnerId: result.Id,
-              }
-        })
-
-        let personWithEvents = await cli.person.findFirst({ where : person.GetUniqueKey(), include: { Events : true}});
-
-
-        expect(personWithEvents).not.toBeNull();
-        expect(personWithEvents?.Events).not.toBeNull();
-        expect(personWithEvents?.Events.length).toBeGreaterThan(0);
-
-
-        await cli.event.delete({
-            where : { Id : personWithEvents?.Events[0].Id}
-        })
-
-        await cli.person.delete({
-            where: {
-                Email : person.Email 
-            }
-        })
-
-        cli.$disconnect();
-
-        expect(person.Name).toBe(result.Name);
-
-    }, 10000);
-
-
-    
-
-
-    test("Delete person", async ()=> {
-
-        let r : PersonRepository = new PersonRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
-
-        let person = new PersonDTO({
-            Email : "ana@gmail.com",
-            Name : "Ana", 
-            Phone : "1298674532"
-        } as IPerson)
-
-        cli.$connect(); 
-
-        await cli.person.create({ data : person.ToCreateData()});       
-
-        await r.Delete(person);
-
-        let result : any;
-
-        try{
-
-            result = await cli.person.findFirst({ where : person.GetUniqueKey()});
-
-            await cli.person.delete({
-                where: {
-                    Email : person.Email 
-                }
-            })
-    
-
-        }catch(ex){
-
-            if(ex instanceof Prisma.PrismaClientKnownRequestError && ex.code == 'P2025')
-            {
-                expect(result).toBeNull();
-
-            }else{
-
-                throw ex;
-            }
-
-        }finally{
-
-            cli.$disconnect();
-        }
-                
-
-    }, 10000);
-
-})
+    expect(personWithEvents).not.toBeNull();
+    expect(personWithEvents?.Events).not.toBeNull();
+    expect(personWithEvents?.Events.length).toBeGreaterThan(0);
+
+    await cli.event.delete({
+      where: { Id: personWithEvents?.Events[0].Id },
+    });
+
+    await cli.person.delete({
+      where: {
+        Email: person.Email,
+      },
+    });
+
+    cli.$disconnect();
+
+    expect(person.Name).toBe(result.Name);
+  }, 10000);
+
+  test("Delete person", async () => {
+    let r: PersonRepository = new PersonRepository();
+
+    let cli: PrismaClient = new PrismaClient();
+
+    let person = new PersonDTO({
+      Email: "ana@gmail.com",
+      Name: "Ana",
+      Phone: "1298674532",
+    } as IPerson);
+
+    cli.$connect();
+
+    await cli.person.create({ data: person.ToCreateData() });
+
+    await r.Delete(person);
+
+    let result: any;
+
+    try {
+      result = await cli.person.findFirst({ where: person.GetUniqueKey() });
+
+      await cli.person.delete({
+        where: {
+          Email: person.Email,
+        },
+      });
+    } catch (ex) {
+      if (
+        ex instanceof Prisma.PrismaClientKnownRequestError &&
+        ex.code == "P2025"
+      ) {
+        expect(result).toBeNull();
+      } else {
+        throw ex;
+      }
+    } finally {
+      cli.$disconnect();
+    }
+  }, 10000);
+});

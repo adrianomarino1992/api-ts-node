@@ -4,10 +4,12 @@ import { Required } from "../decorators/object.decorators";
 import { NotEmpty } from "../decorators/string.decorators";
 import { Validator } from "../decorators/validatorHandler";
 import ValidationResultHandler from '../decorators/handlers/validationResultHandler'
+import { MaxValue } from "../decorators/number.decorators";
 
 
 export class Event implements IEvent
 {
+    @MaxValue(2147483647)
     Id : number;
 
     @Required()

@@ -4,7 +4,7 @@
   "description": "aplicação para gerenciamento de eventos",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
+    "test": "npx jest -- person.test.ts && npx jest -- personController.test.ts && jest -- personRepository.test.ts && jest -- eventRepository.test.ts",
     "test-person": "jest -- person.test.ts",
     "test-personcontroller": "jest -- personController.test.ts",
     "test-person-repo": "jest -- personRepository.test.ts",

@@ -4,10 +4,12 @@ import { Validator } from "../decorators/validatorHandler";
 import { IPerson } from "./interfaces/Iperson";
 import ValidationResultHandler from '../decorators/handlers/validationResultHandler'
 import { CheckRegex } from "../decorators/regex.decorator";
+import { MaxValue } from "../decorators/number.decorators";
 
 export class Person implements IPerson
 {    
    
+    @MaxValue(2147483647)
     public Id : number;
 
     @Required()

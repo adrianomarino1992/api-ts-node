@@ -1,187 +1,188 @@
-import 'reflect-metadata';
-import EventRepository from '../../data/eventRepository';
-import { MetadataKeys } from '../../decorators/validatorHandler';
-import { PersonDTO } from '../../data/dto/personDTO';
-import { IPerson } from '../../models/interfaces/Iperson';
-import { EventDTO } from '../../data/dto/eventDTO';
-import { IEvent } from '../../models/interfaces/Ievent';
-import {Prisma, PrismaClient} from '@prisma/client';
-import exp from 'constants';
+import "reflect-metadata";
+import EventRepository from "../../data/eventRepository";
+import { MetadataKeys } from "../../decorators/validatorHandler";
+import { PersonDTO } from "../../data/dto/personDTO";
+import { IPerson } from "../../models/interfaces/Iperson";
+import { EventDTO } from "../../data/dto/eventDTO";
+import { IEvent } from "../../models/interfaces/Ievent";
+import { Prisma, PrismaClient } from "@prisma/client";
+import exp from "constants";
 
+describe("Test the EventController", () => {
+  test("Ctor", () => {
+    let r: EventRepository = new EventRepository();
 
+    let col = r.CollectionName;
 
-describe("Test the EventController", ()=>{
+    let eventMetadata: string = Reflect.getMetadata(
+      MetadataKeys.PrismaCollectionKey,
+      EventDTO
+    );
 
-    test("Ctor", ()=> {
-        
-        let r : EventRepository = new EventRepository();
-        
-        let col = r.CollectionName;
+    expect(eventMetadata).not.toBeNull();
 
-        let eventMetadata : string = Reflect.getMetadata(MetadataKeys.PrismaCollectionKey, EventDTO)
+    expect(eventMetadata.length).toBeGreaterThan(0);
 
-        expect(eventMetadata).not.toBeNull();
+    expect(col).not.toBeNull();
 
-        expect(eventMetadata.length).toBeGreaterThan(0);
+    expect(col.length).toBeGreaterThan(0);
 
-        expect(col).not.toBeNull();
+    expect(eventMetadata).toBe(col);
+  });
 
-        expect(col.length).toBeGreaterThan(0);
+  test("Add new event", async () => {
+    let r: EventRepository = new EventRepository();
 
-        expect(eventMetadata).toBe(col);
+    let cli: PrismaClient = new PrismaClient();
 
+    let result: any = await cli.person.findFirst();
+
+    let event = new EventDTO({
+      Date: new Date(),
+      Description: "Evento teste",
+      Title: "Evento",
+      Owner: result as IPerson,
+    } as IEvent);
+
+    cli.$connect();
+
+    let count = await cli.event.count();
+
+    await r.Add(event);
+
+    let countAfter = await cli.event.count();
+
+    await cli.event.delete({
+      where: {
+        Date: event.Date,
+      },
     });
 
+    cli.$disconnect();
 
-    test("Add new event", async ()=> {
+    expect(count).toBe(countAfter - 1);
+  }, 10000);
 
-        let r : EventRepository = new EventRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
+  test("Update a event", async () => {
+    let r: EventRepository = new EventRepository();
 
-        let result : any = await cli.person.findFirst();
+    let cli: PrismaClient = new PrismaClient();
 
-        let event = new EventDTO({
-            Date : new Date(),
-            Description : "Evento teste", 
-            Title : "Evento",
-            Owner : result as IPerson
-        }  as IEvent);
+    let result: any = await cli.person.findFirst();
 
-        cli.$connect();
+    let event = new EventDTO({
+      Date: new Date(),
+      Description: "Evento teste",
+      Title: "Evento",
+      Owner: result as IPerson,
+    } as IEvent);
 
-        let count = await cli.event.count();
+    cli.$connect();
 
-        await r.Add(event);
+    await cli.event.create({ data: event.ToCreateData() });
 
-        let countAfter = await cli.event.count();
+    event.Title = "Mudou";
 
-       await cli.event.delete({
-            where: {
-                Date : event.Date
-            }
-        })
+    await r.Update(event);
 
-        cli.$disconnect();
+    let back: IEvent | null = (await cli.event.findFirst({
+      where: { Date: event.Date },
+      include: { Owner: true },
+    })) as unknown as IEvent;
 
-        expect(count).toBe((countAfter - 1));
+    await cli.event.delete({
+      where: {
+        Date: event.Date,
+      },
+    });
 
-    }, 10000);
+    cli.$disconnect();
 
+    expect(back).not.toBeNull();
+    expect(back.Title).toEqual(event.Title);
+    expect(back.Owner.Id).toBe(event.Owner.Id);
+  }, 10000);
 
-    test("Update a event", async ()=> {
+  test("Add a event participant", async () => {
+    let r: EventRepository = new EventRepository();
 
-        let r : EventRepository = new EventRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
+    let cli: PrismaClient = new PrismaClient();
 
-        let result : any = await cli.person.findFirst();
+    let result: any = await cli.person.findFirst();
 
-        let event = new EventDTO({
-            Date : new Date(),
-            Description : "Evento teste", 
-            Title : "Evento",
-            Owner : result as IPerson
-        }  as IEvent);
+    let event = new EventDTO({
+      Date: new Date(),
+      Description: "Evento teste",
+      Title: "Evento",
+      Owner: result as IPerson,
+    } as IEvent);
 
-        cli.$connect();       
+    cli.$connect();
 
-        await cli.event.create({data : event.ToCreateData()});
+    event = await r.Add(event);
 
-        event.Title = "Mudou";
+    let first: PersonDTO = new PersonDTO(
+      (await cli.person.findFirst({
+        where: { Name: "Camila" }
+      })) as unknown as IPerson
+    );
 
-        await r.Update(event);
+    event = await r.AddParticipant(event, first as PersonDTO);
 
-        let back : IEvent | null = (await cli.event.findFirst({ where : { Date : event.Date}, include : {Owner : true}}) as unknown) as IEvent
+    let back: IEvent | null = (await cli.event.findFirst({
+      where: { Date: event.Date },
+      include: { Owner: true },
+    })) as unknown as IEvent;
 
-        await cli.event.delete({
-            where: {
-                Date : event.Date
-            }
-        })
+    cli.$disconnect();
 
-        cli.$disconnect();
+    expect(back).not.toBeNull();
+    expect(back.Title).toEqual(event.Title);
+    expect(back.Owner.Id).toBe(event.Owner.Id);
+  }, 100000);
 
-        expect(back).not.toBeNull();
-        expect(back.Title).toEqual(event.Title);
-        expect(back.Owner.Id).toBe(event.Owner.Id);
+  test("Remove a event participant", async () => {
+    let r: EventRepository = new EventRepository();
 
-    }, 10000);
+    let cli: PrismaClient = new PrismaClient();
 
+    let result: any = await cli.person.findFirst();
 
-    test("Add a event participant", async ()=> {
+    let event = new EventDTO({
+      Date: new Date(),
+      Description: "Evento teste",
+      Title: "Evento",
+      Owner: result as IPerson,
+    } as IEvent);
 
-        let r : EventRepository = new EventRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
+    cli.$connect();
 
-        let result : any = await cli.person.findFirst();
+    event = await r.Add(event);
 
-        let event = new EventDTO({
-            Date : new Date(),
-            Description : "Evento teste", 
-            Title : "Evento",
-            Owner : result as IPerson
-        }  as IEvent);
+    let first: PersonDTO = new PersonDTO(
+      (await cli.person.findFirst({
+        where: { Name: "Camila" }
+      })) as unknown as IPerson
+    );    
 
-        cli.$connect();       
+    event = await r.AddParticipant(event, first);
 
-        event = await r.Add(event);
+    let second: PersonDTO = new PersonDTO(
+        (await cli.person.findFirst({
+          where: { Name: "Juliana" }
+        })) as unknown as IPerson
+      );
 
-        let first : PersonDTO = new PersonDTO(await cli.person.findFirst({where : {Name : "Camila"}}) as unknown as IPerson);
-        let second : PersonDTO = new PersonDTO(await cli.person.findFirst({where : {Name : "Juliana"}}) as unknown as IPerson);
+    event = await r.AddParticipant(event, second);
 
-        event = await r.AddParticipant(event, first as PersonDTO);
+    cli.$disconnect();
 
-        let back : IEvent | null = (await cli.event.findFirst({ where : { Date : event.Date}, include : {Owner : true}}) as unknown) as IEvent
+    expect(event).not.toBeNull();
+    expect(event.Title).toEqual(event.Title);
+    expect(event.Owner.Id).toBe(event.Owner.Id);
+    expect(event.Participants.length).toBe(2);
 
-        cli.$disconnect();
-
-        expect(back).not.toBeNull();
-        expect(back.Title).toEqual(event.Title);
-        expect(back.Owner.Id).toBe(event.Owner.Id);
-
-    }, 100000);
-
-
-
-    test("Remove a event participant", async ()=> {
-
-        let r : EventRepository = new EventRepository();
-        
-        let cli : PrismaClient = new PrismaClient();
-
-        let result : any = await cli.person.findFirst();
-
-        let event = new EventDTO({
-            Date : new Date(),
-            Description : "Evento teste", 
-            Title : "Evento",
-            Owner : result as IPerson
-        }  as IEvent);
-
-        cli.$connect();       
-
-        event = await r.Add(event);
-
-        let first : PersonDTO = new PersonDTO(await cli.person.findFirst({where : {Name : "Camila"}}) as unknown as IPerson);
-        let second : PersonDTO = new PersonDTO(await cli.person.findFirst({where : {Name : "Juliana"}}) as unknown as IPerson);
-
-        event = await r.AddParticipant(event, first);
-        event = await r.AddParticipant(event, second);
-
-        cli.$disconnect();
-
-        expect(event).not.toBeNull();
-        expect(event.Title).toEqual(event.Title);
-        expect(event.Owner.Id).toBe(event.Owner.Id);
-        expect(event.Participants.length).toBe(2);
-
-        event = await r.RemoveParticipant(event, second);
-        expect(event.Participants.length).toBe(1);
-
-
-    }, 100000);
-    
-
-})
+    event = await r.RemoveParticipant(event, second);
+    expect(event.Participants.length).toBe(1);
+  }, 100000);
+});

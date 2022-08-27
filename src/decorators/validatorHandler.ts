@@ -38,47 +38,58 @@ export interface IValidationResult
 
 export function Validator<T>(callback : ValidationHandler<T>) : (target : any, key : string | symbol) => void 
 {    
-    return function validate(target: any, key : string | symbol) : void
-    {
-        let refval : T = target[key];
-       
-        
-        const get = ()=> refval;
+    return new ValidatorFunctionContainer<T>().CreateGettersAndSetters(callback);
+}
 
-        const set = (value: T) => 
+
+export class ValidatorFunctionContainer<T>
+{  
+    private _refval : any;
+
+    CreateGettersAndSetters(callback : ValidationHandler<T>) : (target: any, key : string | symbol) => void
+    { 
+        return (target: any, key : string | symbol) : void => 
         {
-            let erros : IValidationResult[] = [];
+            this._refval = target[key];       
             
-            for(let k of MetadataKeys.ValidationsKeys)
+            const get = ()=> this._refval;
+    
+            const set = (value: T) => 
             {
-                let m = Reflect.getMetadata(k, target, key);
-                if(m)
+                let erros : IValidationResult[] = [];
+                
+                for(let k of MetadataKeys.ValidationsKeys)
                 {
-                    let result : IValidationResult = m(value);
-
-                    if(!result.Sucess)
+                    let m = Reflect.getMetadata(k, target, key);
+                    if(m)
                     {
-                        erros.push(result);
+                        let result : IValidationResult = m(value);
+    
+                        if(!result.Sucess)
+                        {
+                            erros.push(result);
+                        }
                     }
                 }
+                
+                if(erros.find(el => !el.Sucess))
+                {
+                    callback(erros);
+                }
+                
+    
+                this._refval = value;
             }
+    
+            Object.defineProperty(target, key, 
+                {
+                    get : get, 
+                    set : set, 
+                    configurable : true
+                });
+     
             
-            if(erros.find(el => !el.Sucess))
-            {
-                callback(erros);
-            }
-            
-
-            refval = value;
         }
 
-        Object.defineProperty(target, key, 
-            {
-                get : get, 
-                set : set, 
-                configurable : true
-            });
- 
-        
     }
 }
