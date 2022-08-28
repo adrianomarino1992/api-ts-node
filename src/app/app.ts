@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import express, { Express } from "express";
+import cors from 'cors';
 import PersonController from "../controllers/personController";
 import EventController from "../controllers/eventController";
 import { Configuration } from "./configuration";
@@ -21,8 +22,17 @@ export default class Application {
     this.Express = express();
 
     this.Express.use(express.urlencoded({ extended: true }));
+    
+    this.Express.use(cors({
+      origin: true,
+      credentials: true,
+      optionsSuccessStatus: 200 
+    }));
 
-    this.Express.use(express.json({ limit: 1024 * 1024 * 20 }));
+    this.Express.use(express.json(
+      { 
+        limit: 1024 * 1024 * 20 
+      }));
   }
 
 

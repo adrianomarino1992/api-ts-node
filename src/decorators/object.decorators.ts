@@ -10,6 +10,7 @@ export function Required<T>(msg? : string) : (target : any, key : string | symbo
 
         return Reflect.defineMetadata(requiredSymbol, (value : T) : IValidationResult => 
         {
+            let empty = {}
             if(value == null || value == undefined)
             {
                 return {

@@ -17,14 +17,14 @@ export class EventDTO extends Event implements IPrismaConvertible
             Description: this.Description,
             Title: this.Title,
             OwnerId: this.Owner.Id,
-            Date : this.Date
+            Date : new Date(this.Date).toISOString()
           }
     }
 
     public GetUniqueKey() : any
     {
         return {
-            Date : this.Date
+            Date : new Date(this.Date).toISOString()
         }
     }
     

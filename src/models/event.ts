@@ -5,6 +5,7 @@ import { NotEmpty } from "../decorators/string.decorators";
 import { Validator } from "../decorators/validatorHandler";
 import ValidationResultHandler from '../decorators/handlers/validationResultHandler'
 import { MaxValue } from "../decorators/number.decorators";
+import { Exception } from "../app/app";
 
 
 export class Event implements IEvent
@@ -28,12 +29,15 @@ export class Event implements IEvent
 
     Participants : IParticipantOnEvent[] = [];
 
-    @Required()    
+    @Required("Event's owner is required") 
     @Validator(ValidationResultHandler)
     Owner : IPerson;
 
     constructor(data : IEvent)
     {
+        if(!data.Owner.Id)
+            throw new Exception("Event's owner is required");
+            
         this.Id = data.Id;
         this.Title = data.Title;
         this.Description = data.Description;

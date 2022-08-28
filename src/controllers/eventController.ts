@@ -8,6 +8,9 @@ import { AuthenticationHandler } from "../middlewares/authenticationHandler";
 import { IEvent } from "../models/interfaces/Ievent";
 import { Exception } from "../app/app";
 import BaseController from "./baseController";
+import DuplicateKeyException from "../exceptions/duplicateKeyException";
+import IPersonRepository from "../models/interfaces/IpersonRepository";
+import PersonRepository from "../data/personRepository";
 
 @Controller("/events")
 @Use(AuthenticationHandler)
@@ -15,11 +18,13 @@ import BaseController from "./baseController";
 class EventController extends BaseController
 {
     private _rep : IEventRepository<EventDTO, PersonDTO>;
+    private _repPer : IPersonRepository<PersonDTO>;
 
     constructor()
     {
         super();
         this._rep = new EventRepository();
+        this._repPer = new PersonRepository();
     }
 
     @HttpVerb(Verb.GET)
@@ -51,6 +56,21 @@ class EventController extends BaseController
     }
 
     @HttpVerb(Verb.GET)
+    @Action("getById", "id")
+    public async GetById(id : string): Promise<EventDTO[]>
+    {        
+        let i : Number = Number.parseInt(id);
+
+        if(Number.isNaN(i))
+            throw new Exception("The id must be a valid int32 number"); 
+
+        if( i < 0)
+            throw new Exception("The id must be greater than zero")
+
+        return await this._rep.Get({ where : { Id : i }, include : { Owner : true, Participants : true}});
+    }
+
+    @HttpVerb(Verb.GET)
     @Action("getByDate", "date")
     public async GetByDate(date : string): Promise<EventDTO[]>
     {        
@@ -73,6 +93,13 @@ class EventController extends BaseController
     public async Add(event : IEvent): Promise<void>
     {  
         let eventDTO : EventDTO = new EventDTO(event);
+
+        let evt = await this._rep.GetByDate(eventDTO.Date);
+
+        if(evt && evt.length > 0)
+        {
+            throw new DuplicateKeyException("Already exists a event to this date");
+        }
 
         await this._rep.Add(eventDTO);
     }
@@ -102,6 +129,13 @@ class EventController extends BaseController
     {        
         let eventDTO : EventDTO = new EventDTO(event);
 
+        let evt = await this._rep.GetByDate(eventDTO.Date);
+
+        if(evt && evt.length > 0 && evt[0].Id != event.Id)
+        {
+            throw new DuplicateKeyException("Already exists a event to this date");
+        }
+
         await this._rep.Update(eventDTO);
     }
 
@@ -110,6 +144,14 @@ class EventController extends BaseController
     public async Delete(event : IEvent): Promise<void>
     {        
         let eventDTO : EventDTO = new EventDTO(event);
+
+        for(let s of event.Participants)
+        {
+            let person : PersonDTO = new PersonDTO((await this._repPer.Get({where : {Id : s.PersonId}}))[0]);
+
+           await this._rep.RemoveParticipant(eventDTO, person);
+        }
+       
 
         await this._rep.Delete(eventDTO);
     }

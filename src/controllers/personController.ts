@@ -7,6 +7,11 @@ import { AuthenticationHandler } from "../middlewares/authenticationHandler";
 import { IPerson } from "../models/interfaces/Iperson";
 import { Exception } from "../app/app";
 import BaseController from "./baseController";
+import DuplicateKeyException from "../exceptions/duplicateKeyException";
+import IEventRepository from "../models/interfaces/IeventRepository";
+import { EventDTO } from "../data/dto/eventDTO";
+import EventRepository from "../data/eventRepository";
+import ConstraintException from "../exceptions/ConstraintException";
 
 @Controller("/persons")
 @Use(AuthenticationHandler)
@@ -14,18 +19,20 @@ import BaseController from "./baseController";
 class PersonController extends BaseController
 {
     private _rep : IPersonRepository<PersonDTO>;
+    private _repEvt  : IEventRepository<EventDTO, PersonDTO>;
 
     constructor()
     {
         super();
         this._rep = new PersonRepository();
+        this._repEvt = new EventRepository();
     }
 
     @HttpVerb(Verb.GET)
     @Action("getAll")
     public async GetAll(): Promise<PersonDTO[]>
     {        
-        return await this._rep.Get({});
+        return await this._rep.Get({orderBy : [{Name : 'asc'}]});
     }    
 
     @HttpVerb(Verb.GET)
@@ -40,6 +47,11 @@ class PersonController extends BaseController
     public async Add(person : IPerson): Promise<void>
     {  
         let personDTO : PersonDTO = new PersonDTO(person);
+
+        let p = await this._rep.Get({ where : { Email : personDTO.Email }});
+
+        if(p != undefined && p.length > 0)
+            throw new DuplicateKeyException("This email already exist on database");
 
         await this._rep.Add(personDTO);
     }
@@ -75,6 +87,21 @@ class PersonController extends BaseController
     public async Delete(person : IPerson): Promise<void>
     {        
         let personDTO : PersonDTO = new PersonDTO(person);
+
+        let events = await this._repEvt.GetByOwner(personDTO.Id);
+
+        if(events && events.length > 0)
+        {
+            throw new ConstraintException(`This person is owner of "${events[0].Title}", delete this event before.`);
+        }
+
+        events = await this._repEvt.GetByParticipant(personDTO.Id);
+
+        if(events && events.length > 0)
+        {
+            throw new ConstraintException(`This person is part of "${events[0].Title}", remove this person of the event before.`);
+        }
+        
 
         await this._rep.Delete(personDTO);
     }

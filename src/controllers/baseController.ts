@@ -8,6 +8,7 @@ import { Request, Response } from "express";
 import { UsingHandler } from "../decorators/controller.decorators";
 import { Prisma } from "@prisma/client";
 import ValidationException from "../exceptions/validationException";
+import DuplicateKeyException from '../exceptions/duplicateKeyException';
 
 
 export default class BaseController implements IController
@@ -50,6 +51,14 @@ export default class BaseController implements IController
 
             if (arg) {
               argValue = req.body[arg];
+
+              if(!argValue)
+              {
+                argValue = req.url.split(`${arg}=`);
+
+                if(argValue && argValue.length > 1)
+                  argValue = argValue[1];
+              }
             }
 
             let result = await (controller as any)[p](argValue);
@@ -67,7 +76,22 @@ export default class BaseController implements IController
                 message : "Register not found on database"
               }});
 
-            }else if(ex instanceof ValidationException)
+            }
+            else if(ex instanceof DuplicateKeyException)
+            {
+              resp.status(400).json({ error : {
+                message : ex.message                
+              }});
+
+            }
+            else if(ex instanceof DuplicateKeyException)
+            {
+              resp.status(400).json({ error : {
+                message : ex.message                
+              }});
+
+            }
+            else if(ex instanceof ValidationException)
             {
               resp.status(400).json({ error : {
                 message : "Validation fails", 

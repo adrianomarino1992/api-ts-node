@@ -30,14 +30,14 @@ export default class EventRepository extends Repository<EventDTO> implements IEv
 
   public async GetByDate(date : Date) : Promise<EventDTO[]>
   {
-    return (await this._cli.event.findMany({ where : { Date : { equals : date }} , include : { Owner : true, Participants : true} , orderBy: [ {Date : "desc"}, {Title : "asc"}]})) as unknown as EventDTO[];
+    return (await this._cli.event.findMany({ where : { Date : { equals : new Date(new Date(date).toISOString()) }} , include : { Owner : true, Participants : true} , orderBy: [ {Date : "desc"}, {Title : "asc"}]})) as unknown as EventDTO[];
   }
   
   public async GetByDateRange(init : Date, over : Date) : Promise<EventDTO[]>
   {
     return (await this._cli.event.findMany({ where : { AND : [
-      { Date : { gte : init }}, 
-      { Date : { lte : over }}
+      { Date : { gte : new Date(new Date(init).toISOString()) }}, 
+      { Date : { lte : new Date(new Date(over).toISOString()) }}
     ]}, include : { Owner : true, Participants : true}, orderBy: [ {Date : "desc"}, {Title : "asc"}]})) as unknown as EventDTO[];
   }
 
@@ -48,7 +48,7 @@ export default class EventRepository extends Repository<EventDTO> implements IEv
     let event: EventDTO | null;
     let person: PersonDTO | null;
 
-    if (evt.Id == 0 || evt.Id == undefined) event = await this.Add(evt);
+   
 
     if (part.Id == 0 || part.Id == undefined)
       person = await new PersonRepository().Add(part);
@@ -58,7 +58,7 @@ export default class EventRepository extends Repository<EventDTO> implements IEv
 
     try {
       event = new EventDTO((await this._cli.event.findFirst({
-        where: { Date: evt.Date },
+        where: { Date: new Date(new Date(evt.Date).toISOString()) },
         include: { Owner: true, Participants: true },
       })) as unknown as EventDTO);
 
@@ -94,7 +94,6 @@ export default class EventRepository extends Repository<EventDTO> implements IEv
     let event: EventDTO | null;
     let person: PersonDTO | null;
 
-    if (evt.Id == 0 || evt.Id == undefined) event = await this.Add(evt);
 
     if (part.Id == 0 || part.Id == undefined)
       person = await new PersonRepository().Add(part);
@@ -104,7 +103,7 @@ export default class EventRepository extends Repository<EventDTO> implements IEv
 
     try {
       event = new EventDTO((await this._cli.event.findFirst({
-        where: { Date: evt.Date },
+        where: { Date: new Date(new Date(evt.Date).toISOString()) },
         include: { Owner: true, Participants: true },
       })) as unknown as EventDTO);
 
