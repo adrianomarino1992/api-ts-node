@@ -42,6 +42,13 @@ class PersonController extends BaseController
         return await this._rep.Get({ where : { Email : email }});
     }
 
+    @HttpVerb(Verb.GET)
+    @Action("getByName", "name")
+    public async GetByName(name : string): Promise<PersonDTO[]>
+    {        
+        return await this._rep.Get({ where : { name : name }});
+    }
+
     @HttpVerb(Verb.POST)
     @Action("add", "person")
     public async Add(person : IPerson): Promise<void>

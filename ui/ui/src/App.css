@@ -1,5 +1,12 @@
 .App {
   text-align: center;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  height: 100%;
+  width: 100%;
+  background-image: linear-gradient(to bottom right, rgb(219, 218, 218), rgb(223, 237, 243));
+
 }
 
 body{
@@ -57,12 +64,28 @@ h4{
 
 .panel-heading h4{
   margin-top: 5px;
+  font-weight: 400;
 }
 
 div{
   border-radius: 8px !important ; 
 }
 
+.navbar{
+  background-image: linear-gradient(to bottom right, rgb(0, 0, 0), rgb(74, 74, 75));
+}
 .btn {
-  box-shadow: 3px 3px rgba(179, 179, 179, 0.644);
+  box-shadow: 3px 3px rgba(129, 128, 128, 0.486);
+}
+.btn-primary{
+  background-image: linear-gradient(to bottom right, rgb(51, 177, 216), rgb(61, 98, 167));
+}
+.btn-success{
+  background-image: linear-gradient(to bottom right, rgb(51, 216, 133), rgb(10, 136, 83));
+}
+.btn-warning{
+  background-image: linear-gradient(to bottom right, rgb(235, 190, 93), rgb(144, 177, 84));
+}
+.btn-danger{
+  background-image: linear-gradient(to bottom right, rgb(235, 93, 93), rgb(143, 42, 42));
 }

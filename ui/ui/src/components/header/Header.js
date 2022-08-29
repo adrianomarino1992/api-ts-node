@@ -11,30 +11,20 @@ const Header = () => {
     
 
     useEffect(()=>{
-        if(location.pathname === "/")
-        {
-            setActiveTab("Home");
-
-        }else if(location.pathname.indexOf("/persons") >=0 )
-        {
-            setActiveTab("Persons")
-        }
-        else if(location.pathname.indexOf("/events") >= 0)
+        
+        if(location.pathname.indexOf("/events") >= 0)
         {
             setActiveTab("Events")
         }
-        else if(location.pathname.indexOf("/about") >= 0)
-        {
-            setActiveTab("About")
-        }else{
-            
-            setActiveTab("Unknow")
+        else{            
+            setActiveTab("Persons")
         }
+        
     }, [location])
 
     return(
         
-        <nav class="navbar navbar-inverse navbar-fixed-top">
+        <nav class="navbar navbar-inverse navbar-fixed-top" >
         <div class="container-fluid">
             <div class="navbar-header">
                 <a href="#" class="navbar-brand" >

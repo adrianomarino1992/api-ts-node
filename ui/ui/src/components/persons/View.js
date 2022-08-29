@@ -147,12 +147,15 @@ const View = () => {
                         class="panel panel-primary"
                         style={{ border: "none" }}
                       >
+                        <Link to={`/events/view/${e.Id}`}>
                         <div
                           class="panel-heading text-left"
-                          style={{ backgroundColor: "black" }}
+                          style={{ backgroundColor: "black", cursor: "pointer" }}
                         >
+                          
                           <h4 style={{color: 'white'}}>{e.Title}</h4>
                         </div>
+                        </Link>
                         <div
                           class="panel-body text-left"
                           style={{ backgroundColor: "aliceblue" }}
@@ -189,12 +192,14 @@ const View = () => {
                         class="panel panel-primary"
                         style={{ border: "none" }}
                       >
+                        <Link to={`/events/view/${e.Id}`}>
                         <div
                           class="panel-heading text-left"
                           style={{ backgroundColor: "black" }}
                         >
                            <h4 style={{color: 'white'}}>{e.Title}</h4>
                         </div>
+                        </Link>
                         <div
                           class="panel-body text-left"
                           style={{ backgroundColor: "aliceblue" }}

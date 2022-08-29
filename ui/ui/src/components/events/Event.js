@@ -135,7 +135,7 @@ const Event = () => {
                         <td>{e.Owner.Name}</td>
                         <td>{e.Participants.length}</td>
                         <td>
-                          <Link to={`/persons/view/${e.Id}`}>
+                          <Link to={`/events/view/${e.Id}`}>
                             <button
                               class="btn btn-success"
                               style={{ width: "70px" , marginLeft: "10px", marginTop: "5px"}}
